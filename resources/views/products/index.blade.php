@@ -12,14 +12,23 @@
 
 
 <div class="card">
-  <form action="" method="get" class="card-header">
+  <form action="{{ url('product/filter') }}" method="post" class="card-header">
+    @csrf
     <div class="form-row justify-content-between">
       <div class="col-md-2">
-        <input type="text" name="title" placeholder="Product Title" class="form-control">
+        <input type="text" name="title" placeholder="Product Title" class="form-control" value="{{ $title }}">
       </div>
-      <div class="col-md-2">
+      <div class="col-md-4">
         <select name="variant" id="" class="form-control">
-          @foreach()
+          @foreach($variants as $variant)
+            <option disabled>{{ $variant->title }}</option>
+            @php 
+              $vars = App\Models\ProductVariant::where('variant_id', $variant->id)->groupBy('variant')->get();
+            @endphp 
+            @foreach($vars as $var)
+              <option {{ $var->variant == $filterVariant ? 'selected' : '' }} value="{{ $var->variant }}">{{ $var->variant }}</option>
+            @endforeach 
+          @endforeach
         </select>
       </div>
 
@@ -28,8 +37,8 @@
           <div class="input-group-prepend">
             <span class="input-group-text">Price Range</span>
           </div>
-          <input type="text" name="price_from" aria-label="First name" placeholder="From" class="form-control">
-          <input type="text" name="price_to" aria-label="Last name" placeholder="To" class="form-control">
+          <input type="text" name="price_from" aria-label="First name" placeholder="From" class="form-control" value="{{ $fromPrice }}">
+          <input type="text" name="price_to" aria-label="Last name" placeholder="To" class="form-control" value="{{ $toPrice }}">
         </div>
       </div>
       <div class="col-md-2">
@@ -65,13 +74,19 @@
 
                 @php 
                   
-                  $variantPrices = db::table('product_variant_prices')
+                  $query = db::table('product_variant_prices')
                                   ->leftjoin('product_variants as variant1', 'product_variant_prices.product_variant_one', '=', 'variant1.id')
                                   ->leftjoin('product_variants as variant2', 'product_variant_prices.product_variant_two', '=', 'variant2.id')
                                   ->leftjoin('product_variants as variant3', 'product_variant_prices.product_variant_three', '=', 'variant3.id')
                                   ->select('product_variant_prices.*', 'variant1.variant as v1', 'variant2.variant as v2', 'variant3.variant as v3')
                                   ->where(['product_variant_prices.product_id' => $product->id])
-                                  ->get();
+                                  
+                                  ->orWhere('variant1.variant', $filterVariant)
+                                  ->orWhere('variant2.variant', $filterVariant)
+                                  ->orWhere('variant3.variant', $filterVariant)->get();
+
+                  $variantPrices = $query->whereBetween('price', [$fromPrice, $toPrice])->get();
+                                  
 
                 @endphp 
 
@@ -103,7 +118,7 @@
         </tbody>
 
       </table>
-      {{ $porducts->links() }}
+      {{ $products->links() }}
     </div>
 
   </div>
@@ -111,7 +126,7 @@
   <div class="card-footer">
     <div class="row justify-content-between">
       <div class="col-md-6">
-        <p>Showing 1 to 10 out of 100</p>
+        <p>Showing 1 to {{$products->count()}} of {{ $products->total() }}</p>
       </div>
       <div class="col-md-2">
 
@@ -119,5 +134,4 @@
     </div>
   </div>
 </div>
-
 @endsection
