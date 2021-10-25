@@ -7,17 +7,26 @@ use App\Models\ProductVariant;
 use App\Models\ProductVariantPrice;
 use App\Models\Variant;
 use Illuminate\Http\Request;
+use DB;
 
 class ProductController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     *
-     * @return \Illuminate\Contracts\Foundation\Application|\Illuminate\Contracts\View\Factory|\Illuminate\Http\Response|\Illuminate\View\View
-     */
     public function index()
     {
-        return view('products.index');
+        $products = Product::orderBy('id', 'desc')->paginate(10);
+        $variants = DB::table('product_variants')
+                ->join('variants', 'product_variants.variant_id', '=', 'variants.id')
+                ->select('product_variants.*','variants.*')
+                ->groupBy('variants.title')
+                ->get();
+        // $variants = DB::table('variants')
+        //         ->join('product_variants', 'variants.id', '=', 'product_variants.variant_id')
+        //         ->select('variants.*','product_variants.*')
+        //         ->groupBy('title')
+        //         ->get();
+                dd($variants);
+
+        return view('products.index', compact('products'));
     }
 
     /**
